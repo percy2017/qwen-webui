@@ -1,0 +1,53 @@
+<!-- Modal de Nuevo Proyecto -->
+<div class="modal fade" id="newProjectModal" tabindex="-1" aria-labelledby="newProjectModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="newProjectModalLabel">
+          <i class="bi bi-folder-plus me-2"></i>Crear Nuevo Proyecto
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted mb-4">
+          Define la base de tu proyecto. Esta información servirá como contexto inicial para guiar al agente de IA.
+        </p>
+        
+        <form id="newProjectForm">
+          
+          <div class="mb-3">
+            <label for="projectName" class="form-label"><strong>Nombre del Proyecto</strong></label>
+            <input type="text" class="form-control" id="projectName" placeholder="Ej: mi-api-express" required>
+            <div class="form-text">Un nombre corto y descriptivo. Será el nombre del directorio.</div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="projectStack" class="form-label"><strong>Stack Tecnológico Principal</strong></label>
+            <input type="text" class="form-control" id="projectStack" placeholder="Ej: Node.js, Express, SQLite" required>
+            <div class="form-text">Las tecnologías clave que usará el agente.</div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="projectDescription" class="form-label"><strong>Descripción Detallada (Contexto para la IA)</strong></label>
+            <textarea class="form-control" id="projectDescription" rows="6" 
+                      placeholder="Ej: Quiero crear una API REST para un blog. Debe tener endpoints para usuarios, posts y comentarios. Usar autenticación con JWT..."
+                      required></textarea>
+            <div class="form-text">Sé lo más específico posible. Este es el "prompt" principal para el agente.</div>
+          </div>
+          
+          <!-- Campo oculto para la API Key, se rellena automáticamente desde main.js -->
+          <input type="hidden" id="projectApiKey" value="">
+          
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="bi bi-x-circle me-1"></i>Cancelar
+        </button>
+        <button type="button" class="btn btn-primary" id="createProjectBtn">
+            <i class="bi bi-check-circle me-1"></i>Crear Proyecto
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,41 @@
+<!-- Modal de Ajustes -->
+<div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="settingsModalLabel">Ajustes</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="settingsForm">
+          <div class="mb-3">
+            <label for="modelSelect" class="form-label">Modelo de IA por Defecto</label>
+            <select class="form-select" id="modelSelect" required>
+              <option value="" selected disabled>Cargando modelos...</option>
+              <!-- Las opciones se poblarán dinámicamente con JavaScript -->
+            </select>
+            <div class="form-text">Este modelo se usará para nuevos proyectos. Puedes cambiarlo por proyecto.</div>
+          </div>
+          <div class="mb-3">
+            <label for="currentProjectModel" class="form-label">Modelo para Proyecto Actual</label>
+            <select class="form-select" id="currentProjectModel" disabled>
+              <option value="" selected disabled>Selecciona un proyecto primero</option>
+            </select>
+            <div class="form-text">Cambia el modelo para el proyecto seleccionado actual.</div>
+          </div>
+          <div class="mb-3">
+            <label for="themeSelect" class="form-label">Tema</label>
+            <select class="form-select" id="themeSelect">
+              <option value="light">Claro</option>
+              <option value="dark">Oscuro</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="saveSettingsBtn">Guardar Cambios</button>
+      </div>
+    </div>
+  </div>
+</div>

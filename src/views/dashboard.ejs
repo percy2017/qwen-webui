@@ -1,0 +1,169 @@
+<%- include('partials/header') %>
+
+<style>
+    /* Estilos para layout de altura completa */
+    body, html {
+        height: 100%;
+        overflow: hidden; /* Evitar scroll en el body */
+    }
+    .main-wrapper {
+        display: flex;
+        height: 100vh; /* Ocupa toda la altura de la ventana */
+    }
+    .sidebar {
+        /* Usamos las variables de Bootstrap para el fondo */
+        background-color: var(--bs-tertiary-bg);
+        border-right: 1px solid var(--bs-border-color-translucent);
+        flex-shrink: 0; /* Evita que el sidebar se encoja */
+    }
+    main {
+        flex-grow: 1; /* Ocupa el resto del espacio */
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+    }
+    .main-content {
+        flex-grow: 1;
+        overflow-y: auto; /* Permite scroll solo en el contenido si es necesario */
+    }
+    .chat-card {
+        display: flex;
+        flex-direction: column;
+        height: 100%; /* La tarjeta del chat ocupa toda la altura disponible */
+    }
+    .terminal-body {
+        flex-grow: 1; /* El cuerpo del terminal crece para llenar el espacio */
+        overflow-y: auto;
+    }
+</style>
+
+<div class="main-wrapper" id="dashboard">
+    <!-- Sidebar -->
+    <nav id="sidebar" class="d-flex flex-column p-3" style="width: 280px;">
+        <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-decoration-none">
+            <!-- Logo y Título del Sidebar -->
+            <img src="/img/logo.png" alt="Logo" width="32" height="32" class="me-2">
+            <span class="fs-4">Qwen WebUI</span>
+        </a>
+        <hr>
+        <ul class="nav nav-pills flex-column mb-auto">
+            <li class="nav-item">
+                <a href="#" class="nav-link" id="newProjectLink">
+                    <i class="bi bi-plus-circle me-2"></i> Proyecto
+                </a>
+            </li>
+            <li>
+                <a href="#" class="nav-link" id="settingsLink">
+                    <i class="bi bi-gear me-2"></i> Ajustes
+                </a>
+            </li>
+        </ul>
+        <h6 class="sidebar-heading px-3 mt-4 mb-1 text-muted text-uppercase">
+            <span>Mis Proyectos</span>
+        </h6>
+        <ul class="nav flex-column" id="projectsList">
+            <li class="nav-item"><a class="nav-link disabled" href="#">Cargando...</a></li>
+        </ul>
+        <hr>
+        <div class="dropdown">
+            <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-person-circle me-2 fs-4"></i>
+                <strong>Usuario</strong>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-dark text-small shadow">
+                <li><a class="dropdown-item" href="#" id="logoutLink">Cerrar Sesión</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="d-flex flex-column">
+        <div class="main-content p-4">
+            <div class="row g-4 h-100">
+                <!-- Columna Izquierda: Terminal de Chat -->
+                <div class="col-12 col-lg-8 d-flex flex-column">
+                    <div class="card shadow-sm flex-grow-1 chat-card">
+                        <div class="card-header">
+                            <strong id="chat-header">Terminal de Interacción</strong>
+                        </div>
+                        <div class="card-body terminal-body" id="chatTerminal">
+                            <p class="text-muted">Bienvenido. Selecciona un proyecto para comenzar.</p>
+                        </div>
+                        <div class="card-footer p-3">
+                            <div class="input-group">
+                                <input type="text" class="form-control form-control-lg" id="userInput" placeholder="Escribe tu comando o pregunta..." disabled>
+                                <button class="btn btn-primary" type="button" id="sendBtn" disabled>
+                                    <i class="bi bi-send"></i> Enviar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Paneles de Información -->
+                <div class="col-12 col-lg-4 d-flex flex-column">
+                    <!-- Panel de Control del Chat -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body text-center">
+                            <div class="btn-group w-100">
+                                <button type="button" class="btn btn-success" id="startChatBtn" disabled>
+                                    <i class="bi bi-play-circle me-1"></i> Iniciar Chat
+                                </button>
+                                <button type="button" class="btn btn-danger" id="stopChatBtn" disabled>
+                                    <i class="bi bi-stop-circle me-1"></i> Detener Chat
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Panel de Información -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header"><strong>Información del Proyecto</strong></div>
+                        <div class="card-body" id="projectContextPanel">
+                            <p class="text-muted">Selecciona un proyecto para ver sus detalles.</p>
+                        </div>
+                    </div>
+                    <!-- Panel de Estado -->
+                    <div class="card shadow-sm">
+                        <div class="card-header"><strong>Estado del Agente</strong></div>
+                        <div class="card-body" id="projectStatusPanel">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-robot me-2"></i>LLM Activo</span>
+                                    <strong id="selectedModel">-</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-hdd-stack me-2"></i>Estado</span>
+                                    <span class="badge bg-secondary" id="projectStatus">Inactivo</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-file-earmark-text me-2"></i>Archivos en Contexto</span>
+                                    <strong id="contextFilesCount">-</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-cpu me-2"></i>Tokens Usados</span>
+                                    <strong id="tokensUsed">-</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-clock-history me-2"></i>Última Actividad</span>
+                                    <strong id="lastActivity">-</strong>
+                                </li>
+                            </ul>
+                            <div class="d-grid mt-3">
+                               <button class="btn btn-outline-secondary btn-sm" id="viewStatsBtn" disabled>
+                                   <i class="bi bi-bar-chart-line me-1"></i> Ver Estadísticas
+                               </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modales -->
+<%- include('partials/modal-settings') %>
+<%- include('partials/modal-new-project') %>
+
+<%- include('partials/footer') %>
