@@ -1,3 +1,4 @@
+
 # 🤖 Agente de Codificación Web (Proyecto: Qwen-Web-Agent)
 
 **Un entorno de desarrollo web interactivo y auto-alojado, potenciado por el agente de codificación `qwen` y modelos de lenguaje personalizables a través de LiteLLM.**
@@ -17,6 +18,73 @@ Este proyecto lleva la experiencia de un agente de codificación autónomo, capa
 4.  **Experiencia en Tiempo Real:** La comunicación con el agente se realiza mediante streaming a través de Socket.IO, renderizando las respuestas con formato Markdown en tiempo real para una experiencia de usuario fluida.
 
 5.  **Separación Clara de Memorias:** El sistema distingue tres tipos de "memoria" con roles muy definidos.
+
+---
+
+## 📂 Roles de los Componentes Clave
+
+| Componente                 | Rol                                       | Quién lo Gestiona                                      |
+| :------------------------- | :---------------------------------------- | :----------------------------------------------------- |
+| **Base de Datos SQLite**   | **Memoria de la Interfaz de Usuario (UI)** | **Nuestro Backend.** Guarda el historial del chat.   |
+| **`stdin` del `qwen`**     | **Contexto de la Conversación Actual**     | **Nuestro Backend.** Pasa el historial reciente al agente. |
+| **Archivo `QWEN.md`**      | **Manual de Instrucciones del Agente**     | **Nosotros (al inicio) y luego el Agente `qwen`.**    |
+
+---
+
+## 🛠️ Stack y Herramientas
+
+*   **Backend:** Node.js, Express.js, Socket.IO
+*   **Frontend:** Vanilla JS, Bootstrap 5, EJS, Marked.js, Highlight.js
+*   **Base de Datos:** SQLite (`sqlite` y `sqlite3`)
+*   **Agente de IA:** `qwen` CLI
+*   **Proxy de Modelos:** `LiteLLM`
+
+---
+
+## 🎯 Estado Actual y Próximos Pasos
+
+### ✅ Estado Actual
+
+La aplicación ha experimentado una **mejora masiva en la experiencia de usuario (UX) y la robustez de la interfaz**. Se han completado las siguientes tareas clave:
+
+1.  **Layout Profesional de la UI:**
+    *   Se implementó un layout de tres columnas (sidebar, chat, info) que ocupa el 100% de la altura de la ventana.
+    *   Tanto el historial del chat como la columna de información ahora tienen **scrolls independientes**, emulando el comportamiento de aplicaciones como VS Code o WhatsApp Web. El layout ya no se deforma al cargar contenido dinámico.
+
+2.  **Renderizado Inteligente de Respuestas:**
+    *   La UI ahora **detecta y formatea automáticamente el código** en las respuestas del agente, incluso si no viene en formato Markdown. El código HTML, JSON, etc., se muestra en bloques con resaltado de sintaxis.
+    *   Los **logs técnicos** del agente (ej: `Tool write_file completed...`) se limpian y transforman en notificaciones de sistema legibles para el usuario, manteniendo el chat limpio y ordenado.
+
+3.  **Manejo de Errores y Paneles de Información:**
+    *   Los errores de la API del LLM ahora se capturan correctamente en el backend y se muestran al usuario en un modal (`sweetalert2`), en lugar de romper el chat.
+    *   Se ha añadido un panel de **"Información del Usuario"** que consulta la API de LiteLLM para mostrar datos como el alias, el gasto y el presupuesto de la API Key.
+    *   La UI del chat se ha limpiado, moviendo el log del sistema a su propio panel en la columna de información.
+
+### 🚀 Próximos Pasos 
+
+Nuestra prioridad es integrar un **Explorador de Archivos** interactivo en el sidebar.
+
+**PRIORIDAD 1: Explorador de Archivos (Estilo VS Code)**
+
+El objetivo es permitir al usuario visualizar y examinar los archivos del proyecto directamente desde la interfaz. La implementación se dividirá en dos fases:
+
+1.  **Fase 1: Visualización del Árbol de Archivos**
+    *   **Backend:** Crear un nuevo endpoint (`GET /api/projects/:name/files`) que leerá recursivamente el directorio del proyecto (excluyendo `.env`, `QWEN.md`, etc.) y devolverá una estructura de árbol en formato JSON.
+    *   **Frontend:**
+        *   Añadir un nuevo contenedor en el sidebar para el explorador de archivos.
+        *   Cuando se seleccione un proyecto, llamar al nuevo endpoint.
+        *   Con el JSON recibido, renderizar dinámicamente el árbol de archivos y directorios (`<ul>` y `<li>` anidados) con íconos apropiados.
+
+2.  **Fase 2: Visualización del Contenido de Archivos en un Modal**
+    *   **Backend:** Crear un segundo endpoint (`POST /api/projects/:name/file-content`) que, dada una ruta de archivo, leerá y devolverá su contenido como texto plano.
+    *   **Frontend:**
+        *   Añadir el HTML de un modal a `dashboard.ejs`.
+        *   Añadir un event listener a los elementos de archivo en el árbol.
+        *   Al hacer clic, llamar al endpoint de contenido, y mostrar la respuesta en el modal con resaltado de sintaxis (`highlight.js`).
+
+**Otras Tareas Pendientes:**
+*   Implementar la funcionalidad del botón "Adjuntar Archivo".
+*   Implementar la lógica para pasar comandos `/` directamente al agente.
 
 ---
 
@@ -65,52 +133,10 @@ Este proyecto lleva la experiencia de un agente de codificación autónomo, capa
 │   └── server.js               # Punto de entrada de la aplicación.
 │
 ├── package.json
-└── README.md
+└── readme.md
 ```
 
 ---
-
-## 🛠️ Stack y Herramientas
-
-*   **Backend:** Node.js, Express.js, Socket.IO
-*   **Frontend:** Vanilla JS, Bootstrap 5, EJS, Marked.js, Highlight.js
-*   **Base de Datos:** SQLite (`sqlite` y `sqlite3`)
-*   **Agente de IA:** `qwen` CLI
-*   **Proxy de Modelos:** `LiteLLM`
-
----
-
-## 🎯 Estado Actual y Próximos Pasos
-
-### Estado Actual
-El sistema es funcional. La arquitectura está completamente implementada, permitiendo la creación de proyectos y la interacción en tiempo real con el agente `qwen` a través de la interfaz web. Todos los errores de desincronización y de base de datos han sido resueltos.
-
-### Próximos Pasos
-Nuestra prioridad es mejorar la interacción del agente con el entorno del proyecto.
-
-1.  **PRIORIDAD 1: Explorador de Archivos (Estilo VS Code):**
-    *   **Objetivo:** Crear un nuevo panel en el sidebar (o en el panel derecho) que muestre el árbol de archivos y directorios del `workspace` del proyecto actualmente seleccionado.
-    *   **Interacción:** Al hacer clic en un archivo del árbol, su ruta relativa (ej: `@src/index.js`) se debe insertar automáticamente en el `textarea` del chat, para facilitar la inclusión de archivos en el contexto del agente.
-
-2.  **Soporte para Comandos `/`:** Implementar una lógica en el frontend para que, si el usuario escribe un comando como `/stats`, este se pase directamente al `stdin` del agente para que `qwen` lo interprete y devuelva el resultado.
-
-3.  **Gestión de Archivos (Upload):** Implementar la funcionalidad del botón "Adjuntar Archivo" para permitir al usuario subir archivos directamente al `workspace` del proyecto.
-
----
-
-### Análisis del Próximo Paso: Explorador de Archivos
-
-Para implementar el explorador de archivos, necesitaremos:
-
-*   **Backend (Nueva Ruta en `api.routes.js`):**
-    *   Crear un nuevo endpoint, por ejemplo: `GET /api/projects/:name/files`.
-    *   Esta ruta usará el módulo `fs` de Node.js para escanear de forma recursiva el directorio del proyecto (`workspaces/[apiKey]/[projectName]`).
-    *   Devolverá una estructura JSON que represente el árbol de archivos, por ejemplo: `[{ name: 'src', type: 'directory', children: [...] }, { name: 'package.json', type: 'file' }]`.
-
-*   **Frontend (Nueva Lógica en `dashboard.js` y `ui.js`):**
-    *   Cuando se seleccione un proyecto, se hará una llamada a este nuevo endpoint.
-    *   Se usará el JSON recibido para renderizar el árbol en el DOM. Esto se puede hacer creando dinámicamente elementos `<ul>` y `<li>` anidados.
-    *   Se añadirá un event listener a los elementos de archivo (`<li>` con `type: 'file'`) para que al hacer clic, se inserte la ruta en el `textarea`.
 
 # archivios principales
 

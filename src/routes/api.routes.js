@@ -126,4 +126,35 @@ router.put('/projects/:name/config', authenticate, async (req, res) => {
     }
 });
 
+
+router.get('/user/info', authenticate, async (req, res) => {
+    // La API Key del usuario ya está en req.apiKey gracias al middleware
+    const { litellmUrl } = req.query;
+
+    if (!litellmUrl) {
+        return res.status(400).json({ success: false, message: "La URL de LiteLLM es requerida." });
+    }
+
+    try {
+        // Hacemos una petición al endpoint /key/info de LiteLLM, usando la API key del usuario
+        const response = await axios.get(`${litellmUrl}/key/info`, {
+            headers: { 
+                'Authorization': `Bearer ${req.apiKey}` 
+            }
+        });
+        
+        // Enviamos la respuesta de LiteLLM de vuelta al frontend
+        res.json({ success: true, data: response.data });
+
+    } catch (error) {
+        console.error('Error al obtener la información del usuario desde LiteLLM:', error.message);
+        res.status(500).json({ 
+            success: false, 
+            message: "No se pudo obtener la información del usuario desde LiteLLM." 
+        });
+    }
+});
+
+
+
 export default router;

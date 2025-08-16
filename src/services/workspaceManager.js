@@ -20,7 +20,11 @@ export async function createProject(projectData) {
         ].join('\n');
         await fs.writeFile(path.join(projectPath, '.env'), envContent);
 
-        const settingsContent = JSON.stringify({ sessionTokenLimit: 32000 }, null, 2);
+        const settingsContent = JSON.stringify({
+            theme: "Default",
+            selectedAuthType: "openai",
+            mcpServers: {}
+        }, null, 2);
         await fs.writeFile(path.join(projectPath, 'settings.json'), settingsContent);
 
         const qwenMdContent = `## Propósito del Proyecto: ${name}\n\n**Stack Tecnológico:** ${stack}\n\n**Descripción:**\n${description}`;

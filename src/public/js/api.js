@@ -91,3 +91,25 @@ export async function fetchModels(litellmUrl) {
         return [];
     }
 }
+
+// --- INICIO DEL NUEVO CÓDIGO ---
+
+/**
+ * Obtiene la información del usuario desde el proxy de LiteLLM.
+ * @returns {Promise<object|null>} - Los datos del usuario o null si hay un error.
+ */
+export async function fetchUserInfo() {
+    const litellmUrl = localStorage.getItem('qwen_litellm_url');
+    if (!litellmUrl) {
+        console.error("No se encontró la URL de LiteLLM para obtener la info del usuario.");
+        return null;
+    }
+
+    // Construimos el endpoint con el query parameter necesario
+    const endpoint = `/user/info?litellmUrl=${encodeURIComponent(litellmUrl)}`;
+    
+    const result = await request(endpoint);
+    
+    // La ruta del backend devuelve los datos dentro de una propiedad "data"
+    return result.success ? result.data : null;
+}

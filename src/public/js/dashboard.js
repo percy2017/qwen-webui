@@ -20,7 +20,9 @@ export function initializeDashboard() {
         projectContextPanel: document.getElementById('projectContextPanel'),
         chatHeader: document.getElementById('chat-header'),
         chatHistory: document.getElementById('chat-history'),
-        systemTerminal: document.getElementById('system-terminal'),
+        // El systemTerminal antiguo ya no se usa aquí
+        systemTerminalLog: document.getElementById('system-terminal-log'), // Apuntamos al nuevo panel
+        userInfoPanel: document.getElementById('userInfoPanel'), // Referencia al nuevo panel de usuario
         newProjectModal: new bootstrap.Modal(document.getElementById('newProjectModal')),
         settingsModal: new bootstrap.Modal(document.getElementById('settingsModal')),
         newProjectForm: document.getElementById('newProjectForm'),
@@ -33,10 +35,51 @@ export function initializeDashboard() {
     ui.setChatActive(false);
     initSockets();
     loadAndRenderProjects();
+    loadAndRenderUserInfo();
     setupEventListeners();
 
+async function loadAndRenderUserInfo() {
+    const userInfo = await api.fetchUserInfo();
+    
+    if (userInfo && userInfo.info) {
+        const { key_alias, spend, max_budget } = userInfo.info;
+        const spendFormatted = spend ? `$${parseFloat(spend).toFixed(4)}` : '$0.00';
+        const budgetFormatted = max_budget ? `$${parseFloat(max_budget).toFixed(2)}` : 'Sin límite';
+
+        elements.userInfoPanel.innerHTML = `
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-person-badge me-2"></i>Alias</span>
+                    <strong>${key_alias || 'No definido'}</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-coin me-2"></i>Gasto</span>
+                    <strong>${spendFormatted}</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-wallet2 me-2"></i>Presupuesto</span>
+                    <strong>${budgetFormatted}</strong>
+                </li>
+            </ul>
+            <div class="d-grid p-3 border-top">
+                <button class="btn btn-sm btn-outline-danger" id="logoutLinkDynamic">
+                    <i class="bi bi-box-arrow-right me-2"></i>Cerrar Sesión
+                </button>
+            </div>
+        `;
+
+        // --- INICIO DE LA MODIFICACIÓN ---
+        // Asignamos el evento al nuevo botón que acabamos de crear
+        document.getElementById('logoutLinkDynamic').addEventListener('click', handleLogout);
+        // --- FIN DE LA MODIFICACIÓN ---
+
+    } else {
+        elements.userInfoPanel.innerHTML = '<p class="text-muted p-3">No se pudieron cargar los datos del usuario.</p>';
+    }
+}
+
     function setupEventListeners() {
-        elements.logoutLink.addEventListener('click', handleLogout);
+        // elements.logoutLink.addEventListener('click', handleLogout);
         elements.sendBtn.addEventListener('click', sendMessage);
         
         const adjustTextareaHeight = () => {
@@ -60,16 +103,25 @@ export function initializeDashboard() {
         elements.saveSettingsBtn.addEventListener('click', handleSaveSettings);
     }
 
-    function initSockets() {
-        socket = io({ auth: { apiKey: localStorage.getItem('qwen_api_key') } });
-        socket.on('connect', () => ui.addSystemLogMessage('Conectado al servidor.'));
-        socket.on('disconnect', () => ui.addSystemLogMessage('Desconectado. Intentando reconectar...'));
-        socket.on('agentMessage', handleAgentMessage);
-        socket.on('agentError', (error) => {
-            ui.addSystemLogMessage(`Error del agente: ${error.message}`);
-            resetAgentState();
+function initSockets() {
+    socket = io({ auth: { apiKey: localStorage.getItem('qwen_api_key') } });
+    socket.on('connect', () => ui.addSystemLogMessage('Conectado al servidor.'));
+    socket.on('disconnect', () => ui.addSystemLogMessage('Desconectado. Intentando reconectar...'));
+    socket.on('agentMessage', handleAgentMessage);
+
+    // --- INICIO DE LA MODIFICACIÓN ---
+    socket.on('agentError', (error) => {
+        // En lugar de escribir en el log, mostramos una alerta SweetAlert2
+        Swal.fire({
+            icon: 'error',
+            title: 'Error del Agente',
+            text: error.message,
+            confirmButtonText: 'Entendido'
         });
-    }
+        resetAgentState(); // Reactivamos la UI para que el usuario pueda intentarlo de nuevo
+    });
+    // --- FIN DE LA MODIFICACIÓN ---
+}
 
     function handleAgentMessage({ type, data }) {
         if (type === 'start') {

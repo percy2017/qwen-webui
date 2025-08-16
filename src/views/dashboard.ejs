@@ -1,47 +1,8 @@
 <%- include('partials/header') %>
 
-<style>
-    /* Estilos para layout de altura completa */
-    body, html {
-        height: 100%;
-        overflow: hidden; /* Evitar scroll en el body */
-    }
-    .main-wrapper {
-        display: flex;
-        height: 100vh; /* Ocupa toda la altura de la ventana */
-    }
-    .sidebar {
-        background-color: var(--bs-tertiary-bg);
-        border-right: 1px solid var(--bs-border-color-translucent);
-        flex-shrink: 0;
-    }
-    main {
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
-        height: 100vh;
-        overflow: hidden;
-    }
-    .main-content {
-        flex-grow: 1;
-        overflow-y: auto;
-    }
-    .chat-card {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-    }
-    .chat-card-body {
-        flex-grow: 1;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-    }
-</style>
-
 <div class="main-wrapper" id="dashboard">
     <!-- Sidebar -->
-    <nav id="sidebar" class="d-flex flex-column p-3" style="width: 280px;">
+    <nav id="sidebar" class="d-flex flex-column p-3 bg-body-tertiary" style="width: 280px;">
         <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-decoration-none">
             <img src="/img/logo.png" alt="Logo" width="32" height="32" class="me-2">
             <span class="fs-4">Qwen WebUI</span>
@@ -65,66 +26,53 @@
         <ul class="nav flex-column" id="projectsList">
             <li class="nav-item"><a class="nav-link disabled" href="#">Cargando...</a></li>
         </ul>
-        <hr>
-        <div class="dropdown">
-            <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-person-circle me-2 fs-4"></i>
-                <strong>Usuario</strong>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-dark text-small shadow">
-                <li><a class="dropdown-item" href="#" id="logoutLink">Cerrar Sesión</a></li>
-            </ul>
-        </div>
     </nav>
 
     <!-- Main Content -->
-    <main class="d-flex flex-column">
+    <main>
         <div class="main-content p-4">
-            <div class="row g-4 h-100">
+            <div class="row g-4">
                 <!-- Columna Izquierda: Terminal de Chat -->
-                <div class="col-12 col-lg-8 d-flex flex-column">
-                    <div class="card shadow-sm flex-grow-1 chat-card">
+                <div class="col-12 col-lg-8 chat-column">
+                    <div class="card shadow-sm chat-card">
                         <div class="card-header">
                             <strong id="chat-header">Terminal de Interacción</strong>
                         </div>
                         <div class="card-body chat-card-body p-0">
-                            <!-- NUEVA ESTRUCTURA: Terminal de Sistema y Chat separados -->
-                            <div id="system-terminal" class="p-3 border-bottom" style="height: 120px; overflow-y: auto; font-family: monospace; font-size: 0.9em;">
-                                <div class="text-muted">Bienvenido. Selecciona un proyecto para comenzar.</div>
-                            </div>
-                            <div id="chat-history" class="flex-grow-1 p-3" style="overflow-y: auto;">
+                            <div id="chat-history" class="p-3">
                                 <!-- El historial del chat se renderizará aquí -->
                             </div>
                         </div>
                         <div class="card-footer p-3">
-                            <!-- NUEVA ESTRUCTURA: Textarea con botón de adjuntar -->
-                            <div class="input-group">
-                                <button class="btn btn-outline-secondary" type="button" id="attach-file-btn" disabled>
-                                    <i class="bi bi-paperclip"></i>
-                                </button>
-                                <input type="file" id="file-input" class="d-none">
-                                <textarea class="form-control" id="userInput" placeholder="Escribe tu comando o pregunta..." rows="1" style="resize: none; overflow-y: hidden;" disabled></textarea>
-                                <button class="btn btn-primary" type="button" id="sendBtn" disabled>
-                                    <i class="bi bi-send"></i>
-                                </button>
-                            </div>
+                         <div class="input-group">
+    <button class="btn btn-outline-secondary" type="button" id="attach-file-btn" disabled>
+        <i class="bi bi-paperclip"></i>
+    </button>
+    <input type="file" id="file-input" class="d-none">
+    <textarea class="form-control" id="userInput" placeholder="Escribe tu comando o pregunta..." rows="1" style="resize: none; overflow-y: hidden;" disabled></textarea>
+    <button class="btn btn-primary" type="button" id="sendBtn" disabled>
+        <i class="bi bi-send"></i>
+    </button>
+</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Columna Derecha: Paneles de Información -->
-                <div class="col-12 col-lg-4 d-flex flex-column">
-                    <!-- BOTONES INICIAR/DETENER ELIMINADOS -->
-
-                    <!-- Panel de Información -->
+                <div class="col-12 col-lg-4 info-column">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header"><strong>Información del Usuario</strong></div>
+                        <div class="card-body" id="userInfoPanel">
+                            <p class="text-muted">Cargando datos...</p>
+                        </div>
+                    </div>
                     <div class="card shadow-sm mb-4">
                         <div class="card-header"><strong>Información del Proyecto</strong></div>
                         <div class="card-body" id="projectContextPanel">
                             <p class="text-muted">Selecciona un proyecto para ver sus detalles.</p>
                         </div>
                     </div>
-                    <!-- Panel de Estado -->
-                    <div class="card shadow-sm">
+                    <div class="card shadow-sm mb-4">
                         <div class="card-header"><strong>Estado del Agente</strong></div>
                         <div class="card-body" id="projectStatusPanel">
                             <ul class="list-group list-group-flush">
@@ -136,23 +84,14 @@
                                     <span><i class="bi bi-hdd-stack me-2"></i>Estado</span>
                                     <span class="badge bg-secondary" id="projectStatus">Inactivo</span>
                                 </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span><i class="bi bi-file-earmark-text me-2"></i>Archivos en Contexto</span>
-                                    <strong id="contextFilesCount">-</strong>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span><i class="bi bi-cpu me-2"></i>Tokens Usados</span>
-                                    <strong id="tokensUsed">-</strong>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span><i class="bi bi-clock-history me-2"></i>Última Actividad</span>
-                                    <strong id="lastActivity">-</strong>
-                                </li>
                             </ul>
-                            <div class="d-grid mt-3">
-                               <button class="btn btn-outline-secondary btn-sm" id="viewStatsBtn" disabled>
-                                   <i class="bi bi-bar-chart-line me-1"></i> Ver Estadísticas
-                               </button>
+                        </div>
+                    </div>
+                    <div class="card shadow-sm">
+                        <div class="card-header"><strong>Log del Sistema</strong></div>
+                        <div class="card-body p-0">
+                            <div id="system-terminal-log" class="p-3" style="height: 150px; overflow-y: auto; font-family: monospace; font-size: 0.85em;">
+                                <!-- Mensajes del sistema -->
                             </div>
                         </div>
                     </div>
