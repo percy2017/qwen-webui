@@ -23,33 +23,17 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Debug: log de todas las peticiones
-app.use((req, res, next) => {
-    console.log(`DEBUG server.js: Petición ${req.method} ${req.url}`);
-    next();
-});
-
 // Configuración de EJS
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-
-// Rutas (más específicas primero)
-// console.log('DEBUG server.js: Montando rutas...');
 
 // Montar rutas
 app.use('/connect', authRoutes);
 app.use('/api', apiRoutes);
 app.use('/', appRoutes);
 
-
 // Inicializar el gestor de sockets
 initializeSocketManager(io);
-
-// Manejador de errores 404
-app.use((req, res) => {
-    console.log(`DEBUG server.js: 404 - Ruta no encontrada: ${req.method} ${req.url}`);
-    res.status(404).json({ success: false, message: 'Ruta no encontrada' });
-});
 
 // Manejador de errores global
 app.use((err, req, res, next) => {

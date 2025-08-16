@@ -26,11 +26,13 @@ export function initializeLoginPage() {
     }
 
     // Toggle para ver contraseña
-    togglePasswordBtn.addEventListener('click', () => {
-        const type = apiKeyInput.type === 'password' ? 'text' : 'password';
-        apiKeyInput.type = type;
-        togglePasswordBtn.querySelector('i').className = `bi bi-eye${type === 'password' ? '' : '-slash'}`;
-    });
+    if (togglePasswordBtn) {
+        togglePasswordBtn.addEventListener('click', () => {
+            const type = apiKeyInput.type === 'password' ? 'text' : 'password';
+            apiKeyInput.type = type;
+            togglePasswordBtn.querySelector('i').className = `bi bi-eye${type === 'password' ? '' : '-slash'}`;
+        });
+    }
 
     // Envío del formulario
     loginForm.addEventListener('submit', async (e) => {

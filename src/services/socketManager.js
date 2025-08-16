@@ -1,94 +1,79 @@
 import { spawn } from 'child_process';
 import path from 'path';
-import fs from 'fs';
+import { db } from '../db/database.js';
 
 export function initializeSocketManager(io) {
+    io.use((socket, next) => {
+        const apiKey = socket.handshake.auth.apiKey;
+        if (!apiKey) {
+            return next(new Error('Authentication error: No API key provided.'));
+        }
+        socket.apiKey = apiKey;
+        next();
+    });
+
     io.on('connection', (socket) => {
-        console.log('Usuario conectado:', socket.id);
-        
-        let projectPath = '';
-        let projectName = '';
+        console.log('Usuario conectado:', socket.id, 'con API Key:', socket.apiKey);
 
-        socket.on('startChat', (data) => {
-            const { apiKey, projectId, projectContext } = data;
-            
-            projectName = projectContext.name || projectId;
-            projectPath = path.join(process.cwd(), 'workspaces', apiKey, projectName);
-            
-            if (!fs.existsSync(projectPath)) {
-                const errorMessage = `Error: El directorio del proyecto '${projectName}' no existe.`;
-                console.error(errorMessage);
-                socket.emit('agentMessage', { type: 'error', data: errorMessage });
-                return;
+        socket.on('userMessage', async (data) => {
+            const { projectId, message } = data;
+            if (!projectId || !message) {
+                return socket.emit('agentError', { message: 'Falta projectId o mensaje.' });
             }
-            
-            console.log(`Agente para '${projectName}' listo en el directorio: ${projectPath}`);
-            socket.emit('agentMessage', { type: 'system', data: `Agente para '${projectName}' listo. Puedes enviar mensajes.` });
-        });
+            const projectPath = path.join(process.cwd(), 'workspaces', socket.apiKey, projectId);
 
-        socket.on('userMessage', (data) => {
-            if (!projectPath) {
-                socket.emit('agentMessage', { type: 'error', data: 'Por favor, inicia un chat primero seleccionando un proyecto.' });
-                return;
+            try {
+                // 1. Guardar mensaje de usuario en la DB (para la UI)
+                await db.run('INSERT INTO chats (project_name, api_key, role, content) VALUES (?, ?, ?, ?)', [projectId, socket.apiKey, 'user', message]);
+
+                // 2. Obtener historial reciente de la DB para construir el prompt
+                const history = await db.all('SELECT role, content FROM chats WHERE project_name = ? AND api_key = ? ORDER BY timestamp DESC LIMIT 10', [projectId, socket.apiKey]);
+                
+                // 3. Construir el prompt completo en memoria
+                const fullPrompt = history.reverse().map(msg => {
+                    return `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`;
+                }).join('\n');
+
+                // 4. Invocar al agente (¡YA NO TOCAMOS QWEN.md!)
+                socket.emit('agentMessage', { type: 'start' });
+                const qwenProcess = spawn('qwen', ['--yolo'], { cwd: projectPath, shell: true });
+                let fullResponse = '';
+                let fullError = '';
+
+                qwenProcess.stdout.on('data', (chunk) => {
+                    const chunkStr = chunk.toString();
+                    fullResponse += chunkStr;
+                    socket.emit('agentMessage', { type: 'chunk', data: chunkStr });
+                });
+                qwenProcess.stderr.on('data', (chunk) => {
+                    fullError += chunk.toString();
+                });
+                qwenProcess.on('close', async (code) => {
+                    const trimmedResponse = fullResponse.trim();
+                    if (code === 0 && trimmedResponse) {
+                        // 5. Guardar respuesta del asistente en la DB (para la UI)
+                        await db.run('INSERT INTO chats (project_name, api_key, role, content) VALUES (?, ?, ?, ?)', [projectId, socket.apiKey, 'assistant', trimmedResponse]);
+                    } else {
+                        const errorMessage = fullError || `El proceso finalizó con código ${code}.`;
+                        socket.emit('agentError', { message: errorMessage });
+                    }
+                    socket.emit('agentMessage', { type: 'end' });
+                });
+                qwenProcess.on('error', (err) => {
+                    socket.emit('agentError', { message: `Error al ejecutar el agente: ${err.message}` });
+                });
+                
+                // 6. Pasar el prompt completo al agente por stdin
+                qwenProcess.stdin.write(fullPrompt + '\n');
+                qwenProcess.stdin.end();
+
+            } catch (error) {
+                socket.emit('agentError', { message: `Error interno del servidor: ${error.message}` });
             }
-
-            console.log(`[${projectName}] Recibido: "${data.message}". Iniciando qwen...`);
-            
-            const qwenExecutable = 'qwen';
-            const qwenArgs = ['--yolo'];
-
-            const qwenProcess = spawn(qwenExecutable, qwenArgs, {
-                cwd: projectPath,
-                shell: true,
-                stdio: ['pipe', 'pipe', 'pipe']
-            });
-
-            let fullResponse = '';
-            let fullError = ''; // <--- MEJORA 1: Variable para capturar errores
-
-            qwenProcess.stdout.on('data', (chunk) => {
-                fullResponse += chunk.toString();
-            });
-
-            // <--- MEJORA 2: Capturar la salida de error estándar (stderr)
-            qwenProcess.stderr.on('data', (chunk) => {
-                fullError += chunk.toString();
-            });
-
-            qwenProcess.on('close', (code) => {
-                console.log(`[${projectName}] Proceso finalizado (código ${code}). Respuesta: "${fullResponse.trim()}"`);
-                if (code === 0) {
-                    socket.emit('agentMessage', { type: 'stdout', data: fullResponse });
-                } else {
-                    // MEJORA 3: Enviar el mensaje de error capturado al usuario
-                    const errorMessage = fullError || `El proceso falló con código ${code}.`;
-                    console.error(`[${projectName}] Error del proceso: ${errorMessage}`);
-                    socket.emit('agentMessage', { type: 'error', data: errorMessage });
-                }
-            });
-
-            qwenProcess.on('error', (err) => {
-                console.error(`[${projectName}] Error al iniciar Qwen:`, err);
-                socket.emit('agentMessage', { type: 'error', data: `Error al ejecutar qwen: ${err.message}` });
-            });
-            
-            qwenProcess.stdin.write(data.message + '\n');
-            qwenProcess.stdin.end();
         });
 
-        socket.on('stopChat', () => {
-             // projectConfig = {}; // <--- CORRECCIÓN: Eliminamos esta línea que causaba un error
-             projectPath = '';
-             projectName = '';
-             console.log('Chat detenido y configuración limpiada.');
-        });
-
-        // Es buena práctica manejar la desconexión también
         socket.on('disconnect', () => {
             console.log('Usuario desconectado:', socket.id);
-            // No hay un proceso persistente que matar, así que solo limpiamos las variables de sesión
-            projectPath = '';
-            projectName = '';
         });
     });
 }

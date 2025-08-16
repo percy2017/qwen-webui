@@ -3,33 +3,47 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="settingsModalLabel">Ajustes</h5>
+        <h5 class="modal-title" id="settingsModalLabel">
+          <i class="bi bi-gear-fill me-2"></i>Ajustes
+        </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <form id="settingsForm">
-          <div class="mb-3">
-            <label for="modelSelect" class="form-label">Modelo de IA por Defecto</label>
+
+          <!-- Ajustes Generales -->
+          <div class="mb-4">
+            <label for="modelSelect" class="form-label"><strong>Modelo de IA por Defecto</strong></label>
             <select class="form-select" id="modelSelect" required>
               <option value="" selected disabled>Cargando modelos...</option>
-              <!-- Las opciones se poblarán dinámicamente con JavaScript -->
             </select>
-            <div class="form-text">Este modelo se usará para nuevos proyectos. Puedes cambiarlo por proyecto.</div>
+            <div class="form-text">Este modelo se usará para todos los nuevos proyectos.</div>
           </div>
-          <div class="mb-3">
-            <label for="currentProjectModel" class="form-label">Modelo para Proyecto Actual</label>
-            <select class="form-select" id="currentProjectModel" disabled>
-              <option value="" selected disabled>Selecciona un proyecto primero</option>
-            </select>
-            <div class="form-text">Cambia el modelo para el proyecto seleccionado actual.</div>
-          </div>
-          <div class="mb-3">
-            <label for="themeSelect" class="form-label">Tema</label>
+          
+          <div class="mb-4">
+            <label for="themeSelect" class="form-label"><strong>Tema de la Interfaz</strong></label>
             <select class="form-select" id="themeSelect">
               <option value="light">Claro</option>
               <option value="dark">Oscuro</option>
             </select>
           </div>
+
+          <hr>
+
+          <!-- INICIO DE LA SECCIÓN CORREGIDA -->
+          <!-- Este DIV ahora tiene el ID que el JavaScript busca para mostrar/ocultar -->
+          <div id="currentProjectSettings" style="display: none;"> 
+            <h6 class="mb-3">Ajustes para el Proyecto: <strong id="settingsForProjectName" class="text-primary"></strong></h6>
+            <div class="mb-3">
+              <label for="currentProjectModel" class="form-label"><strong>Modelo para este Proyecto</strong></label>
+              <select class="form-select" id="currentProjectModel" disabled>
+                <option value="" selected disabled>Selecciona un proyecto primero</option>
+              </select>
+              <div class="form-text">Anula el modelo por defecto solo para el proyecto actual.</div>
+            </div>
+          </div>
+          <!-- FIN DE LA SECCIÓN CORREGIDA -->
+
         </form>
       </div>
       <div class="modal-footer">
