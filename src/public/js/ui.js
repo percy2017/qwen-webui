@@ -2,50 +2,38 @@
 
 /**
  * Muestra alertas tostadas usando SweetAlert2.
- * @param {string} message - El mensaje a mostrar.
- * @param {'error' | 'success' | 'info'} type - El tipo de alerta.
  */
 export function showAlert(message, type = 'error') {
-    const icon = type;
-    const title = {
-        'success': '¡Éxito!',
-        'error': 'Error',
-        'info': 'Información'
-    }[type];
     Swal.fire({
-        icon, title, text: message, toast: true, position: 'top-end',
-        showConfirmButton: false, timer: 3000, timerProgressBar: true
+        icon: type,
+        title: type.charAt(0).toUpperCase() + type.slice(1),
+        text: message,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true
     });
 }
 
 /**
- * Añade un mensaje al nuevo panel de Log del Sistema.
- * @param {string} message - El mensaje de log.
+ * Añade un mensaje al panel de Log del Sistema.
  */
 export function addSystemLogMessage(message) {
-    // --- INICIO DE LA MODIFICACIÓN ---
-    // Apuntamos al nuevo ID del panel en la columna derecha
     const systemTerminalLog = document.getElementById('system-terminal-log');
     if (!systemTerminalLog) return;
-
-    // Si es el primer mensaje, limpiamos el contenido inicial
     if (systemTerminalLog.querySelector('.text-muted')) {
         systemTerminalLog.innerHTML = '';
     }
-    
     const messageElement = document.createElement('div');
     messageElement.className = 'system-log-message';
     messageElement.textContent = `> ${message}`;
     systemTerminalLog.appendChild(messageElement);
     systemTerminalLog.scrollTop = systemTerminalLog.scrollHeight;
-    // --- FIN DE LA MODIFICACIÓN ---
 }
 
 /**
- * Añade una burbuja de chat al historial. Inicia el proceso de streaming para el asistente.
- * @param {'user' | 'assistant'} role - Quién envía el mensaje.
- * @param {string} content - El contenido del mensaje (completo para el usuario, vacío para el asistente).
- * @returns {HTMLElement | null} - El elemento del contenido del mensaje del asistente para el streaming.
+ * Añade una burbuja de chat al historial.
  */
 export function addChatMessage(role, content = '') {
     const chatHistory = document.getElementById('chat-history');
@@ -54,20 +42,15 @@ export function addChatMessage(role, content = '') {
     const messageContainer = document.createElement('div');
     messageContainer.className = `message ${role}-message`;
 
-    // Para mensajes de usuario, el contenido se renderiza de inmediato.
     if (role === 'user') {
         messageContainer.textContent = content;
-    } 
-    // Para el asistente, preparamos un contenedor que se llenará con el streaming.
-    else {
-        // Un cursor parpadeante mientras se espera la respuesta.
+    } else {
         messageContainer.innerHTML = '<span class="blinking-cursor"></span>';
     }
 
     chatHistory.appendChild(messageContainer);
     chatHistory.scrollTop = chatHistory.scrollHeight;
 
-    // Si es un mensaje de asistente, devolvemos el contenedor para el streaming.
     return role === 'assistant' ? messageContainer : null;
 }
 
@@ -78,79 +61,78 @@ export function addChatMessage(role, content = '') {
  * @param {string} fullContent - El contenido completo acumulado.
  */
 export function updateAssistantMessage(assistantMessageElement, fullContent) {
+    if (!assistantMessageElement) return;
+
+    // Elimina el cursor parpadeante si existe
     const cursor = assistantMessageElement.querySelector('.blinking-cursor');
     if (cursor) cursor.remove();
 
-    // --- LÓGICA DE LIMPIEZA Y FORMATEO REFINADA ---
+    // --- INICIO DE LA NUEVA LÓGICA DE PARSEO ROBUSTA ---
 
-    let processedContent = fullContent;
+    let finalHtml = '';
 
-    // Paso 1: Buscar el inicio del log de la herramienta.
-    const toolStartRegex = /(\[.*?\] 🔧 Executing tool: write_file \(content: ")/i;
-    const toolStartMatch = processedContent.match(toolStartRegex);
+    // Regex para detectar si hay una acción de escritura de archivo en el texto
+    const toolActionRegex = /\[.*?\] 🔧 Executing tool: write_file/;
 
-    if (toolStartMatch) {
-        // Extraer el nombre del archivo para el mensaje de resumen
-        const filePathMatch = processedContent.match(/file_path:.*?([\w\.]+\.html?)/i);
-        const fileName = filePathMatch ? filePathMatch[1] : 'un archivo';
-        const summaryMessage = `<div class="tool-log-summary">✅ <strong>Acción del sistema:</strong> Se guardó el archivo <code>${fileName}</code>.</div>`;
+    if (toolActionRegex.test(fullContent)) {
+        // 1. Extraer las partes importantes: texto previo, código, nombre de archivo y texto posterior.
+        const contentRegex = /([\s\S]*?)\[.*?\] 🔧 Executing tool: write_file \(content: "([\s\S]*?)", file_path: ".*?[\\/]([\w.-]+\.(?:html|css|js|json|md))"\)[\s\S]*?✅ Tool write_file completed successfully[\s\S]*?(\n\n.*|$)/m;
+        const match = fullContent.match(contentRegex);
 
-        // Reemplazar el inicio ruidoso del log con nuestro mensaje limpio.
-        processedContent = processedContent.replace(toolStartRegex, summaryMessage);
+        if (match) {
+            const textBefore = match[1] || '';
+            const codeContent = match[2] || '';
+            const fileName = match[3] || 'archivo';
+            const textAfter = match[4] || '';
 
-        // Paso 2: Eliminar el final ruidoso del log (desde ", file_path..." hasta el diff).
-        const toolEndRegex = /", file_path:[\s\S]*?(?=(Listo!|He creado|Here is the))/i;
-        processedContent = processedContent.replace(toolEndRegex, '');
-    }
+            // 2. Construir el HTML limpio
+            const summaryHtml = `<div class="tool-log-summary">✅ <strong>Acción del sistema:</strong> Se guardó el archivo <code>${fileName}</code>.</div>`;
+            
+            // Determinar el lenguaje para el resaltado
+            const language = fileName.split('.').pop();
+            const highlightedCode = hljs.highlight(codeContent.trim(), { language, ignoreIllegals: true }).value;
 
-    // Paso 3: Ahora que el contenido está limpio, buscamos y formateamos el bloque de código HTML.
-    const htmlRegex = /(<!DOCTYPE html>[\s\S]*?<\/html>)/i;
-    const htmlMatch = processedContent.match(htmlRegex);
+            const codeBlockHtml = `
+                <div class="code-block-wrapper">
+                    <div class="code-block-header">
+                        <span>${language}</span>
+                        <button class="copy-code-btn"><i class="bi bi-clipboard"></i> Copiar</button>
+                    </div>
+                    <pre><code class="language-${language}">${highlightedCode}</code></pre>
+                </div>
+            `;
+            
+            // 3. Unir todas las partes
+            finalHtml = marked.parse(textBefore) + summaryHtml + codeBlockHtml + marked.parse(textAfter);
 
-    if (htmlMatch) {
-        const htmlCode = htmlMatch[1];
-        const parts = processedContent.split(htmlRegex);
-        const textBefore = parts[0];
-        const textAfter = parts[2] || '';
+        } else {
+            // Si el regex falla por alguna razón, mostramos el texto como viene para no perder información.
+            finalHtml = marked.parse(fullContent);
+        }
 
-        const highlightedCode = hljs.highlight(htmlCode.trim(), { language: 'html' }).value;
-        const codeBlockHtml = `<pre><code class="language-html">${highlightedCode}</code></pre>`;
-
-        assistantMessageElement.innerHTML = 
-            marked.parse(textBefore) + 
-            codeBlockHtml + 
-            marked.parse(textAfter);
     } else {
-        // Si no hay HTML, simplemente procesamos el texto (que ya podría estar limpio).
-        assistantMessageElement.innerHTML = marked.parse(processedContent);
+        // Si no es una acción de 'write_file', es un mensaje normal. Lo procesamos con Markdown.
+        finalHtml = marked.parse(fullContent);
     }
+    
+    assistantMessageElement.innerHTML = finalHtml;
+    
+    // --- FIN DE LA NUEVA LÓGICA ---
 
-    // Post-procesamiento para el botón de copiar.
-    assistantMessageElement.querySelectorAll('pre code').forEach(block => {
-        if (block.parentElement.querySelector('.code-block-header')) return;
-        const pre = block.parentElement;
-        const language = block.className.replace(/hljs|language-/g, '').trim() || 'code';
-        const header = document.createElement('div');
-        header.className = 'code-block-header';
-        const langSpan = document.createElement('span');
-        langSpan.textContent = language;
-        const copyBtn = document.createElement('button');
-        copyBtn.className = 'copy-code-btn';
-        copyBtn.innerHTML = '<i class="bi bi-clipboard"></i> Copiar';
-        copyBtn.onclick = () => copyCode(block, copyBtn);
-        
-        header.appendChild(langSpan);
-        header.appendChild(copyBtn);
-        pre.insertBefore(header, block);
+    // Añadir funcionalidad a todos los botones de copiar que se acaban de crear
+    assistantMessageElement.querySelectorAll('.copy-code-btn').forEach(btn => {
+        btn.onclick = () => {
+            const codeBlock = btn.closest('.code-block-wrapper').querySelector('code');
+            copyCode(codeBlock, btn);
+        };
     });
 
     const chatHistory = document.getElementById('chat-history');
     chatHistory.scrollTop = chatHistory.scrollHeight;
 }
+
 /**
  * Función para copiar el contenido de un bloque de código.
- * @param {HTMLElement} block - El elemento <code> que contiene el texto.
- * @param {HTMLElement} button - El botón que fue presionado.
  */
 function copyCode(block, button) {
     navigator.clipboard.writeText(block.textContent).then(() => {
@@ -164,23 +146,13 @@ function copyCode(block, button) {
     });
 }
 
-
 /**
- * Activa o desactiva los controles del chat y paneles.
- * @param {boolean} isActive - Si el chat debe estar activo.
+ * Activa o desactiva los controles del chat.
  */
 export function setChatActive(isActive) {
     const userInput = document.getElementById('userInput');
     const sendBtn = document.getElementById('sendBtn');
-    const attachFileBtn = document.getElementById('attach-file-btn');
-    const viewStatsBtn = document.getElementById('viewStatsBtn');
-
     if (userInput) userInput.disabled = !isActive;
     if (sendBtn) sendBtn.disabled = !isActive;
-    if (attachFileBtn) attachFileBtn.disabled = !isActive;
-    if (viewStatsBtn) viewStatsBtn.disabled = !isActive;
-    
-    if (isActive) {
-        userInput.focus();
-    }
+    if (isActive) userInput.focus();
 }
