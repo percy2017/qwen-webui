@@ -2,13 +2,6 @@
 
 import { showAlert } from './ui.js';
 
-/**
- * Función centralizada para todas las peticiones a la API.
- * Maneja automáticamente la autenticación, los errores y el formato JSON.
- * @param {string} endpoint - El endpoint de la API (ej: '/projects').
- * @param {object} options - Opciones de Fetch (method, body, etc.).
- * @returns {Promise<object>} - La respuesta del servidor.
- */
 async function request(endpoint, options = {}) {
     const headers = {
         'Content-Type': 'application/json',
@@ -21,30 +14,23 @@ async function request(endpoint, options = {}) {
         const responseData = await response.json();
         
         if (!response.ok) {
-            // Si la respuesta no es exitosa, lanza un error con el mensaje del servidor
             throw new Error(responseData.message || `Error del servidor: ${response.status}`);
         }
         
-        return responseData; // { success: true, ... }
+        return responseData;
     } catch (error) {
-        // Muestra el error al usuario y devuelve un objeto de fallo consistente
         showAlert(error.message, 'error');
         console.error(`Error en la petición a ${endpoint}:`, error);
         return { success: false, message: error.message };
     }
 }
 
-
-// --- FUNCIONES DE LA API REESCRITAS Y CORREGIDAS ---
-
 export async function fetchProjects() {
     const result = await request('/projects');
     return result.success ? result.projects : [];
 }
 
-// CORREGIDO: Ahora acepta y envía el 'model'. La autenticación es automática.
 export async function createNewProject(name, stack, description, litellmUrl, model) {
-    // La apiKey se obtiene del header, no es necesaria en el body.
     return request('/projects', {
         method: 'POST',
         body: JSON.stringify({ name, stack, description, litellmUrl, model })
@@ -75,12 +61,9 @@ export async function updateProjectConfig(projectName, litellmUrl, selectedModel
     return result.success;
 }
 
-// CORREGIDO: Simplificado para manejar la respuesta correcta del backend.
 export async function fetchModels(litellmUrl) {
     const apiKey = localStorage.getItem('qwen_api_key');
     if (!litellmUrl || !apiKey) return [];
-    
-    // Esta llamada es especial por los query params, por eso no usa el wrapper `request`.
     try {
         const response = await fetch(`/api/models?litellmUrl=${encodeURIComponent(litellmUrl)}&apiKey=${encodeURIComponent(apiKey)}`);
         const result = await response.json();
@@ -92,24 +75,13 @@ export async function fetchModels(litellmUrl) {
     }
 }
 
-// --- INICIO DEL NUEVO CÓDIGO ---
-
-/**
- * Obtiene la información del usuario desde el proxy de LiteLLM.
- * @returns {Promise<object|null>} - Los datos del usuario o null si hay un error.
- */
 export async function fetchUserInfo() {
     const litellmUrl = localStorage.getItem('qwen_litellm_url');
     if (!litellmUrl) {
         console.error("No se encontró la URL de LiteLLM para obtener la info del usuario.");
         return null;
     }
-
-    // Construimos el endpoint con el query parameter necesario
     const endpoint = `/user/info?litellmUrl=${encodeURIComponent(litellmUrl)}`;
-    
     const result = await request(endpoint);
-    
-    // La ruta del backend devuelve los datos dentro de una propiedad "data"
     return result.success ? result.data : null;
 }

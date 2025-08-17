@@ -4,6 +4,7 @@ import { db } from '../db/database.js';
 import { createProject, deleteProject, listProjectsInWorkspace } from '../services/workspaceManager.js';
 import fs from 'fs/promises';
 import path from 'path';
+import dirTree from 'directory-tree';
 
 const router = express.Router();
 
@@ -47,6 +48,24 @@ router.get('/projects', authenticate, async (req, res) => {
         res.json({ success: true, projects: projectsDetails });
     } catch (error) {
         res.status(500).json({ success: false, message: "Error al obtener proyectos." });
+    }
+});
+
+router.get('/projects/:name/files', authenticate, async (req, res) => {
+    const { name } = req.params;
+    try {
+        const projectPath = path.join(process.cwd(), 'workspaces', req.apiKey, name);
+        const tree = dirTree(projectPath, {
+            // exclude: /\.env/,
+            normalizePath: true,
+        });
+        if (!tree) {
+            return res.json([]);
+        }
+        res.json(tree.children);
+    } catch (error) {
+        console.error(`Error al generar el árbol de archivos para ${name}:`, error);
+        res.status(500).json({ success: false, message: 'Error al obtener la estructura de archivos.' });
     }
 });
 
@@ -126,24 +145,17 @@ router.put('/projects/:name/config', authenticate, async (req, res) => {
     }
 });
 
-
 router.get('/user/info', authenticate, async (req, res) => {
-    // La API Key del usuario ya está en req.apiKey gracias al middleware
     const { litellmUrl } = req.query;
-
     if (!litellmUrl) {
         return res.status(400).json({ success: false, message: "La URL de LiteLLM es requerida." });
     }
-
     try {
-        // Hacemos una petición al endpoint /key/info de LiteLLM, usando la API key del usuario
         const response = await axios.get(`${litellmUrl}/key/info`, {
             headers: { 
                 'Authorization': `Bearer ${req.apiKey}` 
             }
         });
-        
-        // Enviamos la respuesta de LiteLLM de vuelta al frontend
         res.json({ success: true, data: response.data });
 
     } catch (error) {
@@ -155,6 +167,52 @@ router.get('/user/info', authenticate, async (req, res) => {
     }
 });
 
+router.post('/projects/:name/file-content', authenticate, async (req, res) => {
+    const { filePath } = req.body;
+
+    if (!filePath) {
+        return res.status(400).json({ success: false, message: 'La ruta del archivo es requerida.' });
+    }
+
+    try {
+        const projectPath = path.join(process.cwd(), 'workspaces', req.apiKey, req.params.name);
+        if (!path.resolve(filePath).startsWith(path.resolve(projectPath))) {
+            return res.status(403).json({ success: false, message: 'Acceso denegado al archivo.' });
+        }
+        const content = await fs.readFile(filePath, 'utf-8');
+        res.type('text/plain').send(content);
+
+    } catch (error) {
+        console.error(`Error al leer el archivo ${filePath}:`, error);
+        res.status(404).json({ success: false, message: 'No se pudo encontrar o leer el archivo.' });
+    }
+});
+
+
+router.post('/projects/:name/save-file', authenticate, async (req, res) => {
+    const { filePath, content } = req.body;
+
+    if (filePath === undefined || content === undefined) {
+        return res.status(400).json({ success: false, message: 'La ruta y el contenido del archivo son requeridos.' });
+    }
+
+    try {
+        // Por seguridad, verificamos de nuevo que el archivo pertenezca al workspace del usuario.
+        const projectPath = path.join(process.cwd(), 'workspaces', req.apiKey, req.params.name);
+        if (!path.resolve(filePath).startsWith(path.resolve(projectPath))) {
+            return res.status(403).json({ success: false, message: 'Acceso denegado para escribir en esta ruta.' });
+        }
+
+        // Escribimos el nuevo contenido en el archivo.
+        await fs.writeFile(filePath, content, 'utf-8');
+        
+        res.json({ success: true, message: `Archivo ${path.basename(filePath)} guardado correctamente.` });
+
+    } catch (error) {
+        console.error(`Error al guardar el archivo ${filePath}:`, error);
+        res.status(500).json({ success: false, message: 'No se pudo guardar el archivo.' });
+    }
+});
 
 
 export default router;

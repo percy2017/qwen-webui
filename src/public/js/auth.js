@@ -1,8 +1,6 @@
 // --- src/public/js/auth.js ---
 
 import { showAlert } from './ui.js';
-
-// Función para cargar credenciales guardadas
 function loadCredentials() {
     const apiKey = localStorage.getItem('qwen_api_key');
     const litellmUrl = localStorage.getItem('qwen_litellm_url');
@@ -17,7 +15,6 @@ export function initializeLoginPage() {
     const rememberMeCheckbox = document.getElementById('rememberMe');
     const togglePasswordBtn = document.getElementById('togglePassword');
 
-    // Rellenar campos si existen credenciales guardadas
     const creds = loadCredentials();
     if (creds.apiKey && creds.litellmUrl && creds.rememberMe) {
         apiKeyInput.value = creds.apiKey;

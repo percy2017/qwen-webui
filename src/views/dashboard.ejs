@@ -1,108 +1,147 @@
-<%- include('partials/header') %>
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
 
-<div class="main-wrapper" id="dashboard">
-    <!-- Sidebar -->
-    <nav id="sidebar" class="d-flex flex-column p-3 bg-body-tertiary" style="width: 280px;">
-        <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-decoration-none">
-            <img src="/img/logo.png" alt="Logo" width="32" height="32" class="me-2">
-            <span class="fs-4">Qwen WebUI</span>
-        </a>
-        <hr>
-        <ul class="nav nav-pills flex-column mb-auto">
-            <li class="nav-item">
-                <a href="#" class="nav-link" id="newProjectLink">
-                    <i class="bi bi-plus-circle me-2"></i> Proyecto
-                </a>
-            </li>
-            <li>
-                <a href="#" class="nav-link" id="settingsLink">
-                    <i class="bi bi-gear me-2"></i> Ajustes
-                </a>
-            </li>
-        </ul>
-        <h6 class="sidebar-heading px-3 mt-4 mb-1 text-muted text-uppercase">
-            <span>Mis Proyectos</span>
-        </h6>
-        <ul class="nav flex-column" id="projectsList">
-            <li class="nav-item"><a class="nav-link disabled" href="#">Cargando...</a></li>
-        </ul>
-    </nav>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qwen Web Agent</title>
+    <link rel="shortcut icon" href="/img/logo.png" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.16/themes/default-dark/style.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/tokyo-night.min.css">
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
 
-    <!-- Main Content -->
-    <main>
-        <div class="main-content p-4">
-            <div class="row g-4">
-                <!-- Columna Izquierda: Terminal de Chat -->
-                <div class="col-12 col-lg-8 chat-column">
-                    <div class="card shadow-sm chat-card">
-                        <div class="card-header">
-                            <strong id="chat-header">Terminal de Interacción</strong>
-                        </div>
-                        <div class="card-body chat-card-body p-0">
-                            <div id="chat-history" class="p-3">
-                                <!-- El historial del chat se renderizará aquí -->
+<body>
+
+    <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <img src="/img/logo.png" alt="Qwen Logo" height="24">
+                Web Agent
+            </a>
+            <div class="ms-auto">
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="userOptions"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person-circle me-2"></i>
+                        <span id="user-alias">Perfil</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userOptions">
+                        <li hidden>
+                            <div class="px-3 py-2 text-center">
+                                <h6 class="mb-0" id="user-dropdown-name" >Cargando...</h6>
+                                <small class="text-muted" id="user-dropdown-alias">...</small>
                             </div>
-                        </div>
-                        <div class="card-footer p-3">
-                         <div class="input-group">
-    <button class="btn btn-outline-secondary" type="button" id="attach-file-btn" disabled>
-        <i class="bi bi-paperclip"></i>
-    </button>
-    <input type="file" id="file-input" class="d-none">
-    <textarea class="form-control" id="userInput" placeholder="Escribe tu comando o pregunta..." rows="1" style="resize: none; overflow-y: hidden;" disabled></textarea>
-    <button class="btn btn-primary" type="button" id="sendBtn" disabled>
-        <i class="bi bi-send"></i>
-    </button>
-</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Columna Derecha: Paneles de Información -->
-                <div class="col-12 col-lg-4 info-column">
-                    <div class="card shadow-sm mb-4">
-                        <div class="card-header"><strong>Información del Usuario</strong></div>
-                        <div class="card-body" id="userInfoPanel">
-                            <p class="text-muted">Cargando datos...</p>
-                        </div>
-                    </div>
-                    <div class="card shadow-sm mb-4">
-                        <div class="card-header"><strong>Información del Proyecto</strong></div>
-                        <div class="card-body" id="projectContextPanel">
-                            <p class="text-muted">Selecciona un proyecto para ver sus detalles.</p>
-                        </div>
-                    </div>
-                    <div class="card shadow-sm mb-4">
-                        <div class="card-header"><strong>Estado del Agente</strong></div>
-                        <div class="card-body" id="projectStatusPanel">
-                            <ul class="list-group list-group-flush">
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span><i class="bi bi-robot me-2"></i>LLM Activo</span>
-                                    <strong id="selectedModel">-</strong>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span><i class="bi bi-hdd-stack me-2"></i>Estado</span>
-                                    <span class="badge bg-secondary" id="projectStatus">Inactivo</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="card shadow-sm">
-                        <div class="card-header"><strong>Log del Sistema</strong></div>
-                        <div class="card-body p-0">
-                            <div id="system-terminal-log" class="p-3" style="height: 150px; overflow-y: auto; font-family: monospace; font-size: 0.85em;">
-                                <!-- Mensajes del sistema -->
+                        </li>
+                        <li>
+                            <div class="px-3 py-2">
+                                <div class="d-flex justify-content-between small mb-1">
+                                    <span>Gasto:</span>
+                                    <strong id="user-dropdown-spend">$0.00</strong>
+                                </div>
+                                <div class="d-flex justify-content-between small">
+                                    <span>Presupuesto:</span>
+                                    <strong id="user-dropdown-budget">N/A</strong>
+                                </div>
                             </div>
-                        </div>
-                    </div>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" id="settings-btn"><i class="bi bi-gear-fill me-2"></i>Ajustes</a></li>
+                        <li><a class="dropdown-item text-danger" href="#" id="logout-btn"><i class="bi bi-box-arrow-right me-2"></i>Cerrar Sesión</a></li>
+                    </ul>
                 </div>
             </div>
         </div>
+    </nav>
+
+    <main class="main-container">
+
+        <aside class="sidebar" id="left-sidebar">
+            <div class="sidebar-header d-flex justify-content-between align-items-center">
+                <h5>👨‍🏭 Proyectos</h5>
+                <!-- Botón para crear un nuevo proyecto -->
+                <button class="btn btn-sm btn-outline-secondary" id="new-project-btn" title="Nuevo Proyecto">
+                    <i class="bi bi-plus-lg"></i>
+                </button>
+            </div>
+            
+            <!-- Contenedor del Acordeón para la lista de proyectos -->
+            <div class="accordion accordion-flush" id="projects-accordion">
+                <!-- Los proyectos se añadirán aquí dinámicamente como items del acordeón -->
+                <div class="text-muted p-3">Cargando...</div>
+            </div>
+        </aside>
+
+        <section class="main-content" id="editor-container">
+            <div id="editor-tabs" class="editor-tabs border-bottom d-flex"></div>
+            <div class="editor-area">
+                <div id="welcome-message" class="d-flex h-100 align-items-center justify-content-center text-muted">
+                    <div class="text-center">
+                        <i class="bi bi-file-earmark-code" style="font-size: 4rem;"></i>
+                        <h4 class="mt-3">Aún no hay archivos abiertos</h4>
+                        <p>Selecciona un archivo del explorador para verlo o editarlo.</p>
+                    </div>
+                </div>
+                <div id="code-editor-wrapper" class="d-none h-100"></div>
+                <button class="btn btn-primary position-absolute bottom-0 end-0 m-3 d-none" id="save-file-btn">
+                    <i class="bi bi-save me-2"></i>Guardar Cambios
+                </button>
+            </div>
+        </section>
+        <aside class="sidebar" id="right-sidebar">
+            <div class="sidebar-header">
+                <h5>🤖 Asistente</h5>
+            </div>
+            <div class="chat-history-container flex-grow-1" id="chat-history"></div>
+
+            <div class="chat-input-area p-2 border-top">
+                <form id="chat-form" class="d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-secondary me-2" id="attach-file-btn"
+                        title="Adjuntar archivo">
+                        <i class="bi bi-paperclip"></i>
+                    </button>
+                    <textarea id="user-input" class="form-control" rows="1"
+                        placeholder="Escribe tu comando o pregunta..."></textarea>
+                    <button type="submit" class="btn btn-primary ms-2" id="send-btn" title="Enviar">
+                        <i class="bi bi-send-fill"></i>
+                    </button>
+                </form>
+            </div>
+            <div class="chat-status-bar d-flex justify-content-between align-items-center p-2 border-top">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="agent-mode-switch">
+                    <label class="form-check-label small" for="agent-mode-switch" id="agent-mode-label">Modo
+                        Arquitecto</label>
+                </div>
+                <div class="small text-muted" id="active-llm-indicator">
+                    <i class="bi bi-robot"></i>
+                    <span>Cargando...</span>
+                </div>
+            </div>
+        </aside>
+
     </main>
-</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.16/jstree.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>    
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/js/admin.js"></script>
 
-<!-- Modales -->
-<%- include('partials/modal-settings') %>
-<%- include('partials/modal-new-project') %>
+    <%- include('partials/modal-settings') %>
+    <%- include('partials/modal-new-project') %>
+</body>
 
-<%- include('partials/footer') %>
+</html>

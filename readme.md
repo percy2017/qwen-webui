@@ -1,40 +1,41 @@
+# 🤖 Agente de Codificación Web (Qwen-Web-Agent)
 
-# 🤖 Agente de Codificación Web (Proyecto: Qwen-Web-Agent)
+**Un entorno de desarrollo web interactivo, similar a un IDE, potenciado por una arquitectura de Agente Dual y modelos de lenguaje personalizables a través de LiteLLM.**
 
-**Un entorno de desarrollo web interactivo y auto-alojado, potenciado por el agente de codificación `qwen` y modelos de lenguaje personalizables a través de LiteLLM.**
-
-Este proyecto lleva la experiencia de un agente de codificación autónomo, capaz de interactuar con un sistema de archivos, a una interfaz web limpia y en tiempo real. Permite la configuración detallada de modelos de IA, la creación de proyectos aislados y una interacción fluida para el desarrollo de código asistido por IA.
+Este proyecto ha evolucionado de un simple terminal de chat a un entorno de desarrollo integrado (IDE) en el navegador. Proporciona un explorador de archivos, un editor de código funcional y un asistente de IA con dos modos de operación distintos: un **Agente Arquitecto** para la planificación y un **Agente Programador** para la ejecución autónoma.
 
 ---
 
 ## 🏛️ Filosofía y Arquitectura Central
 
-1.  **Aislamiento y Control:** La arquitectura está diseñada para un entorno multi-usuario y multi-proyecto. Cada proyecto vive en su propio directorio aislado, con su propia configuración (`.env`, `settings.json`) y memoria (`QWEN.md`).
+1.  **Aislamiento y Control:** La arquitectura está diseñada para un entorno multi-usuario y multi-proyecto. Cada proyecto vive en su propio directorio aislado, con su propia configuración (`.env`) y memoria (`QWEN.md`).
 
-2.  **El Backend como Orquestador Inteligente:** El servidor Express.js actúa como el "cerebro", gestionando la UI (rutas, vistas) y orquestando la interacción entre la base de datos de la interfaz y el agente de IA.
+2.  **El Backend como Orquestador Inteligente:** El servidor Express.js actúa como el "cerebro", gestionando la UI (rutas, vistas, API) y orquestando la interacción entre los diferentes componentes: la base de datos, el editor de código y los agentes de IA.
 
-3.  **El Agente `qwen` como Herramienta Efímera ("One-Shot"):** Tratamos al CLI de `qwen` como una herramienta potente pero sin estado en cada ejecución. Se invoca para una tarea, se le proporciona todo el contexto que necesita vía `stdin`, y luego el proceso termina. Esto asegura un sistema predecible, seguro y sin fugas de memoria, ideal para un entorno web.
+3.  **Arquitectura de Agente Dual:** Hemos abandonado el modelo de "un solo disparo". La interacción con la IA se divide en dos modos distintos, controlados por el usuario a través de un switch en la interfaz:
+    *   **Modo Arquitecto:** Utiliza una llamada directa al LLM (vía LiteLLM) para conversar, planificar y refinar estrategias. Su única capacidad de escritura es modificar el archivo `QWEN.md`, que sirve como el plan maestro del proyecto.
+    *   **Modo Programador:** Invoca al agente de codificación `qwen` para que ejecute de forma autónoma (`--yolo`) las tareas definidas en el `QWEN.md`. Este agente interactúa directamente con el sistema de archivos para crear, modificar y leer código.
 
-4.  **Experiencia en Tiempo Real:** La comunicación con el agente se realiza mediante streaming a través de Socket.IO, renderizando las respuestas con formato Markdown en tiempo real para una experiencia de usuario fluida.
+4.  **Backend como Intérprete:** El backend ya no retransmite ciegamente la salida del agente. Ahora analiza la salida del **Agente Programador**, busca patrones de acciones completadas (ej: `Tool write_file completed`), y genera un resumen limpio y conciso para el usuario y para el historial del chat.
 
-5.  **Separación Clara de Memorias:** El sistema distingue tres tipos de "memoria" con roles muy definidos.
+5.  **El `QWEN.md` como Estado Central del Proyecto:** Este archivo ha evolucionado para convertirse en el "dashboard" y la fuente única de verdad para cada proyecto, documentando su objetivo, stack, estructura de archivos y el estado de las tareas.
 
 ---
 
-## 📂 Roles de los Componentes Clave
+## 📂 Los 3 Pilares del Flujo de Trabajo
 
-| Componente                 | Rol                                       | Quién lo Gestiona                                      |
-| :------------------------- | :---------------------------------------- | :----------------------------------------------------- |
-| **Base de Datos SQLite**   | **Memoria de la Interfaz de Usuario (UI)** | **Nuestro Backend.** Guarda el historial del chat.   |
-| **`stdin` del `qwen`**     | **Contexto de la Conversación Actual**     | **Nuestro Backend.** Pasa el historial reciente al agente. |
-| **Archivo `QWEN.md`**      | **Manual de Instrucciones del Agente**     | **Nosotros (al inicio) y luego el Agente `qwen`.**    |
+| Pilar                    | Rol                                                                      | Quién lo Gestiona                                                            |
+| :----------------------- | :----------------------------------------------------------------------- | :--------------------------------------------------------------------------- |
+| **1. Usuario Final**     | **El Director.** Supervisa, planifica y da la orden final de ejecución.    | El usuario, a través de la interfaz web.                                     |
+| **2. Agente Arquitecto** | **El Planificador.** Conversa con el usuario para definir la estrategia.   | Nuestro Backend (llamada directa a LiteLLM). Su única salida es el `QWEN.md`. |
+| **3. Agente Programador**| **El Ejecutor.** Lee el plan del `QWEN.md` y lo ejecuta en el código.      | Nuestro Backend (invocando al CLI `qwen` con `execa`).                       |
 
 ---
 
 ## 🛠️ Stack y Herramientas
 
-*   **Backend:** Node.js, Express.js, Socket.IO
-*   **Frontend:** Vanilla JS, Bootstrap 5, EJS, Marked.js, Highlight.js
+*   **Backend:** Node.js, Express.js, Socket.IO, **`execa`**, **`directory-tree`**
+*   **Frontend:** Vanilla JS, Bootstrap 5, EJS, **`jsTree`**, **`CodeMirror`**, Marked.js
 *   **Base de Datos:** SQLite (`sqlite` y `sqlite3`)
 *   **Agente de IA:** `qwen` CLI
 *   **Proxy de Modelos:** `LiteLLM`
@@ -45,56 +46,48 @@ Este proyecto lleva la experiencia de un agente de codificación autónomo, capa
 
 ### ✅ Estado Actual
 
-La aplicación ha experimentado una **mejora masiva en la experiencia de usuario (UX) y la robustez de la interfaz**. Se han completado las siguientes tareas clave:
+La aplicación ha sido completamente rediseñada en una **interfaz de IDE profesional de 3 columnas**, mejorando drásticamente la usabilidad y el control del usuario.
 
-1.  **Layout Profesional de la UI:**
-    *   Se implementó un layout de tres columnas (sidebar, chat, info) que ocupa el 100% de la altura de la ventana.
-    *   Tanto el historial del chat como la columna de información ahora tienen **scrolls independientes**, emulando el comportamiento de aplicaciones como VS Code o WhatsApp Web. El layout ya no se deforma al cargar contenido dinámico.
+1.  **Layout de IDE Funcional:**
+    *   Se implementó un layout de 3 columnas: **Navegador** (proyectos/archivos), **Editor** (código) y **Asistente** (chat).
 
-2.  **Renderizado Inteligente de Respuestas:**
-    *   La UI ahora **detecta y formatea automáticamente el código** en las respuestas del agente, incluso si no viene en formato Markdown. El código HTML, JSON, etc., se muestra en bloques con resaltado de sintaxis.
-    *   Los **logs técnicos** del agente (ej: `Tool write_file completed...`) se limpian y transforman en notificaciones de sistema legibles para el usuario, manteniendo el chat limpio y ordenado.
+2.  **Explorador de Archivos Interactivo (Sidebar Izquierdo):**
+    *   Los proyectos se muestran en un **acordeón** expandible.
+    *   Al expandir un proyecto, se carga y muestra un **árbol de archivos** (`jsTree`) con íconos específicos para cada tipo de archivo.
+    *   El explorador permite visualizar el `QWEN.md`, pero oculta archivos sensibles como `.env`.
 
-3.  **Manejo de Errores y Paneles de Información:**
-    *   Los errores de la API del LLM ahora se capturan correctamente en el backend y se muestran al usuario en un modal (`sweetalert2`), en lugar de romper el chat.
-    *   Se ha añadido un panel de **"Información del Usuario"** que consulta la API de LiteLLM para mostrar datos como el alias, el gasto y el presupuesto de la API Key.
-    *   La UI del chat se ha limpiado, moviendo el log del sistema a su propio panel en la columna de información.
+3.  **Editor de Código Funcional (Columna Central):**
+    *   Se ha integrado el editor de código **`CodeMirror`**.
+    *   Al hacer clic en un archivo del explorador, su contenido se carga en el editor con **resaltado de sintaxis** y números de línea.
+    *   El usuario puede **editar y guardar** los archivos directamente en el disco a través de la interfaz.
 
-### 🚀 Próximos Pasos 
+4.  **Asistente de IA con Agente Dual (Sidebar Derecho):**
+    *   El usuario puede cambiar entre **Modo Arquitecto** y **Modo Programador** con un switch.
+    *   El **Modo Arquitecto** conversa de forma inteligente, usando el `QWEN.md` como contexto.
+    *   El **Modo Programador** ejecuta las tareas y el backend genera un **resumen limpio de las acciones**, manteniendo el chat libre de logs técnicos.
 
-Nuestra prioridad es integrar un **Explorador de Archivos** interactivo en el sidebar.
+5.  **Backend Robusto:**
+    *   El uso de **`execa`** ha estabilizado la ejecución del agente en diferentes entornos.
+    *   Los timeouts de conexión han sido resueltos a nivel de Nginx y LiteLLM.
 
-**PRIORIDAD 1: Explorador de Archivos (Estilo VS Code)**
+### 🚀 Próximos Pasos
 
-El objetivo es permitir al usuario visualizar y examinar los archivos del proyecto directamente desde la interfaz. La implementación se dividirá en dos fases:
+El núcleo de la aplicación está completo. Ahora nos enfocaremos en refinar la experiencia.
 
-1.  **Fase 1: Visualización del Árbol de Archivos**
-    *   **Backend:** Crear un nuevo endpoint (`GET /api/projects/:name/files`) que leerá recursivamente el directorio del proyecto (excluyendo `.env`, `QWEN.md`, etc.) y devolverá una estructura de árbol en formato JSON.
-    *   **Frontend:**
-        *   Añadir un nuevo contenedor en el sidebar para el explorador de archivos.
-        *   Cuando se seleccione un proyecto, llamar al nuevo endpoint.
-        *   Con el JSON recibido, renderizar dinámicamente el árbol de archivos y directorios (`<ul>` y `<li>` anidados) con íconos apropiados.
+1.  **Actualización Dinámica de `QWEN.md`:**
+    *   **Backend:** Implementar la lógica para que, después de una ejecución del Agente Programador, el `socketManager` actualice automáticamente las secciones "Tareas Completadas" y "Estructura de Archivos" en el archivo `QWEN.md`.
 
-2.  **Fase 2: Visualización del Contenido de Archivos en un Modal**
-    *   **Backend:** Crear un segundo endpoint (`POST /api/projects/:name/file-content`) que, dada una ruta de archivo, leerá y devolverá su contenido como texto plano.
-    *   **Frontend:**
-        *   Añadir el HTML de un modal a `dashboard.ejs`.
-        *   Añadir un event listener a los elementos de archivo en el árbol.
-        *   Al hacer clic, llamar al endpoint de contenido, y mostrar la respuesta en el modal con resaltado de sintaxis (`highlight.js`).
+2.  **Refinar la UI del Chat:**
+    *   **Frontend:** Aunque el backend envía un resumen limpio, la lógica de renderizado del historial (`loadAndRenderChatHistory`) aún necesita ser mejorada para formatear correctamente los resúmenes y los bloques de código guardados en la base de datos.
 
-**Otras Tareas Pendientes:**
-*   Implementar la funcionalidad del botón "Adjuntar Archivo".
-*   Implementar la lógica para pasar comandos `/` directamente al agente.
+3.  **Editor con Pestañas Múltiples:**
+    *   **Frontend:** Mejorar la columna del editor para que soporte la apertura de múltiples archivos en pestañas, similar a VS Code.
 
----
+4.  **Implementar Funcionalidades Menores:**
+    *   Activar el botón "Adjuntar Archivo".
+    *   Implementar una lógica para que los comandos nativos de qwen (ej: `/memory`, `!npm install`) se pasen directamente al Agente Programador.
 
-## 📂 Roles de los Componentes Clave
-
-| Componente | Rol | Quién lo Gestiona |
-| :--- | :--- | :--- |
-| **Base de Datos SQLite** | **Memoria de la Interfaz de Usuario (UI)** | **Nuestro Backend.** Guarda el historial del chat para poder mostrarlo en pantalla. Es el registro persistente de la conversación. |
-| **`stdin` del Proceso `qwen`**| **Contexto de la Conversación Actual** | **Nuestro Backend.** Antes de cada llamada, el backend lee la DB, formatea el historial reciente y se lo pasa al agente a través de este canal. |
-| **Archivo `QWEN.md`** | **Manual de Instrucciones del Agente** | **Nosotros (al inicio) y luego el Agente `qwen`.** Lo creamos con el "propósito" del proyecto. El agente lo lee en cada ejecución y lo puede modificar con comandos como `/memory` para guardar notas a largo plazo. |
+Listo para continuar mañana.
 
 ---
 
